@@ -7,6 +7,7 @@
 //
 
 #import "BuddyListViewController.h"
+#import "chatViewController.h"
 
 @interface BuddyListViewController ()<EMChatManagerDelegate>
 
@@ -35,7 +36,7 @@
      */
 
     self.buddyList = [[EaseMob sharedInstance].chatManager buddyList];
-    NSLog(@"%@",self.buddyList);
+    NSLog(@"self.buddyList2:%@",self.buddyList);
     
     UIView *footerView = [[UIView alloc] init];
     self.tableView.tableFooterView = footerView;
@@ -123,6 +124,22 @@
 -(void)didRemovedByBuddy:(NSString *)username {
     [self loadBuddyListFromServer];
 }
+
+
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+  
+    id segueVC = [segue destinationViewController];
+    if ([segueVC isKindOfClass:[chatViewController class]]) {
+        //获取点击的 row
+        NSInteger index = [self.tableView indexPathForSelectedRow].row;
+        chatViewController *chatController = segueVC;
+        chatController.buddy = self.buddyList[index];
+    }
+}
+
 
 - (void)dealloc {
     [[EaseMob sharedInstance].chatManager removeDelegate:self];

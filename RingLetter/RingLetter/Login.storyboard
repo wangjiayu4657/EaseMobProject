@@ -22,7 +22,7 @@
             </objects>
             <point key="canvasLocation" x="21" y="437"/>
         </scene>
-        <!--Login View Controller-->
+        <!--登录-->
         <scene sceneID="Rsk-ft-e7i">
             <objects>
                 <viewController id="C0U-xC-gWT" customClass="LoginViewController" sceneMemberID="viewController">
@@ -61,7 +61,7 @@
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                     </view>
-                    <navigationItem key="navigationItem" id="tq8-Fo-k17"/>
+                    <navigationItem key="navigationItem" title="登录" id="tq8-Fo-k17"/>
                     <simulatedScreenMetrics key="simulatedDestinationMetrics"/>
                     <connections>
                         <outlet property="passwordField" destination="iiH-rB-Uig" id="Lhp-Ra-1eZ"/>

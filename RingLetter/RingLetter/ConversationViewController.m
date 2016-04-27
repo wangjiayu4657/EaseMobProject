@@ -8,8 +8,13 @@
 
 #import "ConversationViewController.h"
 #import "EaseMob.h"
+#import "chatViewController.h"
+#import "BadgeTableViewCell.h"
 
 @interface ConversationViewController ()<EMChatManagerDelegate>
+
+@property (strong , nonatomic) NSMutableArray *datasource;
+@property (strong , nonatomic) NSArray *buddyList;
 
 @end
 
@@ -21,6 +26,25 @@
     self.navigationItem.title = @"会话";
     
     [[EaseMob sharedInstance].chatManager addDelegate:self delegateQueue:nil];
+    
+    [self loadConversationSource];
+    
+    UIView *footerView = [[UIView alloc] init];
+    self.tableView.tableFooterView = footerView;
+}
+
+- (void) loadConversationSource {
+    //获取历史会化记录
+    //从内存中获取历史会话
+    NSArray *array = [[EaseMob sharedInstance].chatManager conversations];
+    self.datasource = [NSMutableArray arrayWithArray:array];
+    
+    //如果你内存中没有会话记录,那么就从数据库中获取
+    if (self.datasource.count == 0) {
+        self.datasource = [NSMutableArray arrayWithArray:[[EaseMob sharedInstance].chatManager loadAllConversationsFromDatabaseWithAppend2Chat:YES]];
+    }
+
+    [self shaowTabBarBadge];
 }
 
 #pragma mark - chatManager 代理方法
@@ -38,7 +62,7 @@
 
 //将自动连接
 -(void)willAutoReconnect {
-        self.title = @"连接中...";
+    self.title = @"连接中...";
 }
 
 //自动重连接
@@ -62,15 +86,11 @@
     [self showMessageUsername:username WithStatus:@"拒绝了你的请求" withTitle:@"好友添加结果"];
 }
 
-
 //向用户展示信息
 - (void) showMessageUsername:(NSString *) username WithStatus:(NSString *) status withTitle:(NSString *) title {
     NSString *message = [NSString stringWithFormat:@"@%@%@",username,status];
     UIAlertController *alter = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction *ok = [UIAlertAction actionWithTitle:@"我知道了" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        
-    }];
-    
+    UIAlertAction *ok = [UIAlertAction actionWithTitle:@"我知道了" style:UIAlertActionStyleDefault handler:nil];
     [alter addAction:ok];
     [self presentViewController:alter animated:YES completion:nil];
 }
@@ -96,72 +116,85 @@
     [self showMessageUsername:username WithStatus:@"把你删除了" withTitle:@"好友删除提示"];
 }
 
-
 #pragma mark - Table view data source
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-#warning Incomplete implementation, return the number of sections
-    return 0;
+    return 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-#warning Incomplete implementation, return the number of rows
-    return 0;
+    return self.datasource.count;
 }
 
-/*
+-(CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 64;
+}
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:<#@"reuseIdentifier"#> forIndexPath:indexPath];
     
-    // Configure the cell...
+    BadgeTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:badgeCell];
+    if (cell == nil) {
+        cell = [[[NSBundle mainBundle] loadNibNamed:@"BadgeTableViewCell" owner:self options:nil] lastObject];
+    }
+    EMConversation *conversation = self.datasource[indexPath.row];
+    EMMessage *lastMessage = [conversation latestMessage];
+    [cell showBageCount:conversation.unreadMessagesCount WithMessage:lastMessage];
+
+    cell.usernameLabel.text = [NSString stringWithFormat:@"%@",conversation.chatter];
+    
+    id body = conversation.latestMessage.messageBodies[0];
+    if ([body isKindOfClass:[EMTextMessageBody class]]) {
+        EMTextMessageBody *textBody = body;
+        cell.contentLabel.text = textBody.text;
+    }
+    else if ([body isKindOfClass:[EMVoiceMessageBody class]]) {
+        EMVoiceMessageBody *voiceBody = body;
+        cell.contentLabel.text = voiceBody.displayName;
+    }
+    else if ([body isKindOfClass:[EMImageMessageBody class]]) {
+        EMImageMessageBody *imageBody = body;
+        cell.contentLabel.text = imageBody.displayName;
+    }
+    else if ([body isKindOfClass:[EMVideoMessageBody class]]) {
+        EMVideoMessageBody *videoBody = body;
+        cell.contentLabel.text = videoBody.displayName;
+    }
+    else {
+         cell.contentLabel.text = @"未知类型";
+    }
     
     return cell;
 }
-*/
 
-/*
-// Override to support conditional editing of the table view.
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
+#pragma mark - UITableView delegate
+- (void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    
+    EMConversation *conversation = self.datasource[indexPath.row];
+    EMBuddy *buddy = [EMBuddy buddyWithUsername:conversation.chatter];
+    chatViewController *chatController = [[UIStoryboard storyboardWithName:@"Main" bundle:nil] instantiateViewControllerWithIdentifier:@"showDetailController"];
+    chatController.buddy = buddy;
+    [self.navigationController pushViewController:chatController animated:YES];
 }
-*/
 
-/*
-// Override to support editing the table view.
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
-        // Delete the row from the data source
-        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    } else if (editingStyle == UITableViewCellEditingStyleInsert) {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-    }   
+//将参数buddy传到chatViewController控制器
+//- (void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+//    id controller = segue.destinationViewController;
+//    if ([controller isKindOfClass:[chatViewController class]]) {
+//        chatViewController *chatController = controller;
+//        for (EMBuddy *buddy in self.buddyList) {
+//            if ([buddy.username isEqualToString:self.conversation.chatter]) {
+//                 [chatController setValue:buddy forKey:@"buddy"];
+//                 [chatController setValue:self.conversation forKey:@"conversation"];
+//            }
+//        }
+//    }
+//}
+
+
+- (void) viewWillDisappear:(BOOL)animated {
+    [self.tableView reloadData];
 }
-*/
-
-/*
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath {
-}
-*/
-
-/*
-// Override to support conditional rearranging of the table view.
-- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
-    // Return NO if you do not want the item to be re-orderable.
-    return YES;
-}
-*/
-
-/*
-#pragma mark - Navigation
-
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
-}
-*/
 
 #pragma mark - 自动登录回调
 -(void) didAutoLoginWithInfo:(NSDictionary *)loginInfo error:(EMError *)error {
@@ -174,7 +207,29 @@
 }
 
 
+- (void) didUpdateConversationList:(NSArray *)conversationList {
+    //给数据源重新赋值
+    self.datasource = [NSMutableArray arrayWithArray:conversationList];
+//    self.datasource = conversationList;
+    [self.tableView reloadData];
+    
+    [self shaowTabBarBadge];
+}
 
+- (void) didUnreadMessagesCountChanged {
+    [self.tableView reloadData];
+    [self shaowTabBarBadge];
+}
+
+- (void) shaowTabBarBadge {
+    NSInteger totalUnreadCount = 0;
+    for (EMConversation *conversation in self.datasource) {
+        totalUnreadCount += conversation.unreadMessagesCount;
+    }
+    if (totalUnreadCount > 0) {
+        self.navigationController.tabBarItem.badgeValue = [NSString stringWithFormat:@"%ld",totalUnreadCount];
+    }
+}
 
 -(void)dealloc {
     [[EaseMob sharedInstance].chatManager removeDelegate:self];

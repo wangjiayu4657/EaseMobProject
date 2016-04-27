@@ -19,7 +19,7 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import "EaseMob.h"
-
+#import "EMCDDeviceManager.h"
 
 #endif
 
