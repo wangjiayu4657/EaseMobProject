@@ -13,6 +13,9 @@
 #import "timeViewCell.h"
 #import "timeTool.h"
 
+static UIImageView *animatingImageView;//正在执行动画的ImageView
+#define ScreenWidth [UIScreen mainScreen].bounds.size.width
+#define ScreenHeight [UIScreen mainScreen].bounds.size.height
 
 @interface chatViewController () <UITableViewDataSource,UITableViewDelegate,UITextViewDelegate,EMChatManagerDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate,CustomViewDelegate>
 
@@ -41,6 +44,7 @@
 @property (strong , nonatomic) NSString *currentTimeStr;
 @property (nonatomic , strong) EMConversation *conversation;
 
+
 @end
 
 @implementation chatViewController
@@ -64,7 +68,6 @@
     self.chatCellTool = [self.tableView dequeueReusableCellWithIdentifier:receiveCell];
     
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
-
    
     [self.tableView reloadData];
     [self scrollToBottom];
@@ -223,9 +226,9 @@
     
     //发送消息
     [[EaseMob sharedInstance].chatManager asyncSendMessage:message progress:nil prepare:^(EMMessage *message, EMError *error) {
-        NSLog(@"准备发送消息");
+//        NSLog(@"准备发送消息");
     } onQueue:nil completion:^(EMMessage *message, EMError *error) {
-        NSLog(@"消息发送成功 %@",error);
+//        NSLog(@"消息发送成功 %@",error);
     } onQueue:nil];
     
     [self addDataSourceWithmMessage:message];
@@ -312,13 +315,13 @@
 
 //按下开始录音
 - (IBAction)didStartRecordAction:(id)sender {
-    
+   
     int count = arc4random() % 100000;
     NSTimeInterval time = [[NSDate date] timeIntervalSince1970];
     NSString *fileName = [NSString stringWithFormat:@"%d%d",(int)time,count];
     [[EMCDDeviceManager sharedInstance] asyncStartRecordingWithFileName:fileName completion:^(NSError *error) {
         if (!error) {
-            NSLog(@"开始录音");
+            [self startRecordAnimotion];
         }
     }];
 }
@@ -327,8 +330,10 @@
 - (IBAction)didFinishRecordAction:(id)sender {
     [[EMCDDeviceManager sharedInstance] asyncStopRecordingWithCompletion:^(NSString *recordPath, NSInteger aDuration, NSError *error) {
         if (!error) {
-            NSLog(@"录音成功");
             [self sendVoiceMessage:recordPath duration:aDuration];
+            [animatingImageView stopAnimating];
+            [animatingImageView removeFromSuperview];
+
         }
     }];
 }
@@ -360,6 +365,40 @@
     }
 }
 
+
+//录音时的动画
+- (void)startRecordAnimotion {
+    animatingImageView = [[UIImageView alloc] initWithFrame:CGRectMake(ScreenWidth/2 - 90, ScreenHeight/2 + 80, 180, 180)];
+    animatingImageView.layer.masksToBounds = YES;
+    animatingImageView.layer.cornerRadius = 15.0f;
+    animatingImageView.backgroundColor = [UIColor colorWithWhite:0.600 alpha:0.500];
+    [self.view addSubview:animatingImageView];
+    
+    animatingImageView.animationImages = @[[UIImage imageNamed:@"VoiceSearchFeedback001"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback002"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback003"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback004"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback005"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback006"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback007"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback008"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback009"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback010"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback011"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback012"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback013"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback014"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback015"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback016"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback017"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback018"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback019"],
+                                           [UIImage imageNamed:@"VoiceSearchFeedback020"]];
+    
+    animatingImageView.animationDuration = 2.0f;
+    [animatingImageView startAnimating];
+
+}
 
 #pragma mark - UIImagePickerControllerDelegate
 - (void) imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary<NSString *,id> *)info {
