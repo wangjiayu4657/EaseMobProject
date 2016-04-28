@@ -228,6 +228,8 @@
     }
     if (totalUnreadCount > 0) {
         self.navigationController.tabBarItem.badgeValue = [NSString stringWithFormat:@"%ld",totalUnreadCount];
+    }else {
+        self.navigationController.tabBarItem.badgeValue = nil;
     }
 }
 
